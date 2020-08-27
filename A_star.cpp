@@ -5,13 +5,12 @@
 
 using namespace std;
 
-//the adjacency list ADT is used to create the graph
 class graph
 {
 private:
 	struct vertex {
 		int v;
-		bool open;
+		bool closed;
 		int distFromSrc;
 		int hDist;
 		vertex* prev;
@@ -32,7 +31,7 @@ public:
 		vertex v;
 		v.distFromSrc = INF;
 		v.hDist = INF;
-		v.open = true;
+		v.closed = false;
 		v.prev = NULL;
 
 		int xCount = 0;
@@ -107,6 +106,11 @@ public:
 			xHolder = x - 1;
 		}
 	}
+	void addWalls() {						//refer to a drawn out grid
+		vertices[1].closed = true;
+		vertices[10].closed = true;
+		vertices[7].closed = true;
+	}
 	void adjVerts(int e, vector<adjVert>& adjVert) {
 		if (adjVert.size() > 0)		//function automatically clears the vector passed in if necessary
 			adjVert.clear();
@@ -119,6 +123,7 @@ public:
 	void shortestPath(int start, int end) {
 		bool pathFound = false;			//controls main loop
 		int currentVert = start;		//represents current vertex
+		int vertToDel = INF;
 		int shortestDist = INF;			//helps choose the next vertex to visit
 		int hX = 0;						//heuristic x and y variables
 		int hY = 0;
@@ -127,19 +132,33 @@ public:
 		vector<vertex> path;		//used to display path
 		vector<adjVert> adjVert;		//used to store adjacent vertices
 
+		currentVert = start;
 		vertices[currentVert].distFromSrc = 0;
+		vertices[currentVert].hDist = 0;
 		open.push_back(vertices[currentVert]);
 
 		do
 		{
-			adjVerts(currentVert, adjVert);
+			for (int i = 0; i < open.size(); i++)
+			{
+				if (open[i].hDist < shortestDist)
+				{
+					shortestDist = open[i].hDist;
+					currentVert = open[i].v;
+					vertToDel = i;
+				}
+			}
+			open.erase(open.begin() + vertToDel);
+			shortestDist = INF;
+			vertToDel = INF;
 
+			if (currentVert == end)
+				pathFound = true;
+
+			adjVerts(currentVert, adjVert);
 			for (int i = 0; i < adjVert.size(); i++)
 			{
-				if (vertices[adjVert[i].v].open)
-					open.push_back(vertices[adjVert[i].v]);		//adds adjacent vertices to open list if they are open
-
-				if (vertices[currentVert].distFromSrc + adjVert[i].weight < vertices[adjVert[i].v].distFromSrc && vertices[adjVert[i].v].open)	//updates distance from src if necessary
+				if (vertices[currentVert].distFromSrc + adjVert[i].weight < vertices[adjVert[i].v].distFromSrc)
 				{
 					vertices[adjVert[i].v].distFromSrc = vertices[currentVert].distFromSrc + adjVert[i].weight;
 					vertices[adjVert[i].v].prev = &vertices[currentVert];
@@ -156,29 +175,14 @@ public:
 
 					vertices[adjVert[i].v].hDist = vertices[adjVert[i].v].distFromSrc + (hX + hY);	//heuristic value
 				}
-			}
 
-			vertices[currentVert].open = false;
-
-			for (int i = 0; i < open.size(); i++)
-			{
-				if (!open[i].open)		//removes closed vertices from list
+				if (!vertices[adjVert[i].v].closed)
 				{
-					open.erase(open.begin() + i);
-					if (i == open.size())
-						i -= 1;
-				}
-				if (open[i].hDist < shortestDist)	//finds next vertex
-				{
-					shortestDist = open[i].hDist;
-					currentVert = open[i].v;
+					open.push_back(vertices[adjVert[i].v]);
 				}
 			}
-			shortestDist = INF;
-
-			if (vertices[currentVert].v == vertices[end].v)		//ends loop
-				pathFound = true;
-
+			vertices[currentVert].closed = true;	//close current vertex before choosing a new one
+			cout << "current vert: " << currentVert << endl;
 		} while (!pathFound);
 
 		//displays path
@@ -192,23 +196,15 @@ public:
 		{
 			cout << endl << path[i].v;
 		}
-
-		//debugging purposes
-		int count = 0;
-		for (int i = 0; i < vertices.size(); i++)
-		{
-			if (vertices[i].open == false)
-				count++;
-		}
-		cout << endl << "total vertices: " << vertices.size() << endl << "vertices visited: " << count;
 	}
 };
 
 int main()
 {
-	graph g(40, 1600);				// param 1 is the width, param 2 is the total number of vertices
-	g.populateList(40);				// param is the width
-	g.shortestPath(1599, 0);		// param 1 is the start, param 2 is the end
+	graph g(5, 15);				// param 1 is the width, param 2 is the total number of vertices
+	g.populateList(5);				// param is the width
+	g.addWalls();
+	g.shortestPath(0, 14);		// param 1 is the start, param 2 is the end
 
 	cin.get();
 	return 0;
